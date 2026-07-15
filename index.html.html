@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Adventure - Number, Addition and Subtraction Game</title>
+<style>
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    padding:clamp(1rem,4vw,3rem) 1rem;
+    background:radial-gradient(circle at top, #fff3dd 0%, #f3ead9 60%, #eadec2 100%);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    display:flex;
+    justify-content:center;
+    min-height:100vh;
+  }
+  @keyframes bounce{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-12px) rotate(2deg)}}
+  @keyframes pop{0%{transform:scale(0.7);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes wiggle{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+  .mascot{animation:bounce 1.5s ease-in-out infinite;display:inline-block;filter:drop-shadow(0 6px 10px rgba(0,0,0,0.15))}
+  .choice-btn{transition:transform .12s ease, box-shadow .12s ease;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,0.08)}
+  .choice-btn:active{transform:scale(0.92) translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,0.08)}
+  .fruit{display:inline-block;position:relative;margin:0 4px}
+  .fruit.crossed::after{content:'';position:absolute;left:-2px;top:50%;width:calc(100% + 4px);height:5px;background:#D85A30;transform:translateY(-50%) rotate(-18deg);border-radius:2px}
+  button{font-family:inherit}
+  .card{max-width:680px;width:100%}
+</style>
+</head>
+<body>
+
+<div class="card" style="text-align:center;">
+
+<div style="background:linear-gradient(135deg,#F7B23D,#EF9F27);border-radius:28px 28px 0 0;padding:clamp(16px,3.5vw,24px) clamp(18px,4.5vw,30px);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+  <div style="font-size:clamp(20px,4.5vw,26px);font-weight:700;color:#412402;">🐻 Math Adventure</div>
+  <div id="stars-row" style="font-size:clamp(18px,4vw,24px);letter-spacing:2px;"></div>
+</div>
+
+<div style="background:#fffaf0;padding:clamp(1.75rem,5.5vw,3rem) clamp(1.1rem,4.5vw,2rem) 1.75rem;position:relative;overflow:hidden;border-left:3px solid #FAC775;border-right:3px solid #FAC775;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.4);">
+  <div id="mascot" class="mascot" style="font-size:clamp(56px,11vw,80px);">🐻</div>
+
+  <div id="mode-label" style="font-size:clamp(14px,2.8vw,16px);color:#854F0B;font-weight:700;margin:8px 0 2px;text-transform:uppercase;letter-spacing:0.6px;"></div>
+
+  <div id="emoji-row" style="margin:10px 0 16px;min-height:clamp(56px,10vw,80px);display:flex;justify-content:center;align-items:center;flex-wrap:wrap;font-size:clamp(30px,7vw,46px);"></div>
+
+  <div style="display:inline-flex;align-items:center;gap:14px;background:#fff;border:3px dashed #EF9F27;border-radius:20px;padding:clamp(14px,3.5vw,20px) clamp(20px,5.5vw,32px);margin-bottom:2rem;box-shadow:0 3px 10px rgba(0,0,0,0.05);">
+    <span id="question" style="font-size:clamp(30px,7.5vw,46px);font-weight:700;color:#633806;"></span>
+    <span id="answer-box" style="width:clamp(48px,11vw,64px);height:clamp(48px,11vw,64px);border:3px solid #639922;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:clamp(26px,6.5vw,36px);font-weight:700;color:#3B6D11;background:#f4fbe9;">?</span>
+  </div>
+
+  <div id="choices" style="display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(12px,3.5vw,20px);max-width:520px;margin:0 auto;"></div>
+  <div id="feedback" style="margin-top:1.4rem;font-size:clamp(20px,5vw,28px);font-weight:700;min-height:36px;"></div>
+  <canvas id="fw" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+</div>
+
+<div style="background:#fffaf0;border-radius:0 0 28px 28px;padding:0 clamp(1.1rem,4.5vw,2rem) 1.75rem;border-left:3px solid #FAC775;border-right:3px solid #FAC775;border-bottom:3px solid #FAC775;box-shadow:0 8px 20px rgba(0,0,0,0.08);">
+  <div style="font-size:clamp(13px,2.8vw,15px);color:#854F0B;">Question <span id="qnum">1</span> of <span id="qtotal">10</span></div>
+  <button id="again" style="margin-top:1rem;display:none;font-size:clamp(17px,3.8vw,20px);font-weight:700;padding:13px 32px;border-radius:999px;background:linear-gradient(135deg,#7CB342,#639922);color:#fff;border:none;box-shadow:0 4px 10px rgba(99,153,34,0.35);">Play again 🔁</button>
+</div>
+</div>
+
+<script>
+const itemSets = ["⚽","🏈","🎾","🍪","✏️","🕯️","🚌","🧁","💐","🎈"];
+const buttonColors = ["#D85A30","#3B6D11","#993556"];
+let score = 0, qi = 0, total = 10, locked = false, stars = 0, streak = 0;
+const rounds = [];
+function genRounds(){
+  rounds.length = 0;
+  for (let i=0;i<total;i++){
+    const roll = Math.random();
+    let type;
+    if (roll < 0.25) type = 'count';
+    else if (roll < 0.65) type = 'add';
+    else type = 'sub';
+
+    if (type === 'count'){
+      const n = Math.floor(Math.random()*10)+2;
+      rounds.push({type, a:n, b:0, op:'', answer:n});
+    } else if (type === 'add'){
+      let a = Math.floor(Math.random()*7)+1, b = Math.floor(Math.random()*7)+1;
+      if (a+b>12) b = 12-a;
+      rounds.push({type, a, b, op:'+', answer:a+b});
+    } else {
+      let a = Math.floor(Math.random()*9)+3, b = Math.floor(Math.random()*(a-1))+1;
+      rounds.push({type, a, b, op:'-', answer:a-b});
+    }
+  }
+}
+genRounds();
+
+const starsRow = document.getElementById('stars-row');
+const qnumEl = document.getElementById('qnum');
+const emojiRow = document.getElementById('emoji-row');
+const qEl = document.getElementById('question');
+const answerBox = document.getElementById('answer-box');
+const choicesEl = document.getElementById('choices');
+const feedbackEl = document.getElementById('feedback');
+const againBtn = document.getElementById('again');
+const mascotEl = document.getElementById('mascot');
+const modeLabel = document.getElementById('mode-label');
+
+function renderStars(){
+  let s = '';
+  for (let i=0;i<total;i++){ s += i < stars ? '⭐' : '<span style="opacity:0.3">☆</span>'; }
+  starsRow.innerHTML = s;
+}
+renderStars();
+
+let audioCtx;
+function beep(freq, dur, type='sine', delay=0, vol=0.15){
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const t0 = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(vol, t0);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t0); osc.stop(t0 + dur);
+}
+function playCorrect(){
+  beep(523,0.15,'triangle',0); beep(659,0.15,'triangle',0.12);
+  beep(784,0.25,'triangle',0.24); beep(1047,0.3,'triangle',0.36);
+}
+function playStreak(){
+  const notes=[784,880,988,1175,1319];
+  notes.forEach((f,i)=>beep(f,0.18,'triangle',i*0.1,0.16));
+}
+function playWrong(){ beep(220,0.15,'sawtooth',0); beep(180,0.25,'sawtooth',0.14); }
+
+function fireworks(big){
+  const canvas = document.getElementById('fw');
+  const box = canvas.parentElement.getBoundingClientRect();
+  canvas.width = box.width; canvas.height = box.height;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#D85A30','#639922','#EF9F27','#D4537E','#7F77DD'];
+  let particles = [];
+  const bursts = big ? 6 : 2;
+  for (let burst=0; burst<bursts; burst++){
+    setTimeout(()=>{
+      const cx = canvas.width * (0.15 + Math.random()*0.7);
+      const cy = canvas.height * (0.2 + Math.random()*0.4);
+      const color = colors[Math.floor(Math.random()*colors.length)];
+      for (let i=0;i<36;i++){
+        const angle = (Math.PI*2*i)/36;
+        const speed = 2.2 + Math.random()*2.8;
+        particles.push({x:cx,y:cy,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,life:1,color});
+      }
+    }, burst*220);
+  }
+  let frame = 0;
+  function tick(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life -= 0.017;
+      ctx.globalAlpha = Math.max(p.life,0);
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2); ctx.fill();
+    });
+    particles = particles.filter(p=>p.life>0);
+    ctx.globalAlpha = 1;
+    frame++;
+    if (frame < (big ? 220 : 150)) requestAnimationFrame(tick);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  tick();
+}
+
+function renderItemRow(r, item){
+  emojiRow.innerHTML = '';
+  if (r.type === 'count'){
+    for (let i=0;i<r.a;i++){
+      const s = document.createElement('span');
+      s.className = 'fruit'; s.textContent = item;
+      emojiRow.appendChild(s);
+    }
+  } else if (r.type === 'add'){
+    for (let i=0;i<r.a;i++){
+      const s = document.createElement('span'); s.className = 'fruit'; s.textContent = item;
+      emojiRow.appendChild(s);
+    }
+    const plus = document.createElement('span');
+    plus.style.cssText = 'font-size:0.8em;margin:0 10px;color:#633806;';
+    plus.textContent = '+';
+    emojiRow.appendChild(plus);
+    for (let i=0;i<r.b;i++){
+      const s = document.createElement('span'); s.className = 'fruit'; s.textContent = item;
+      emojiRow.appendChild(s);
+    }
+  } else {
+    const keep = r.a - r.b;
+    for (let i=0;i<keep;i++){
+      const s = document.createElement('span'); s.className = 'fruit'; s.textContent = item;
+      emojiRow.appendChild(s);
+    }
+    for (let i=0;i<r.b;i++){
+      const s = document.createElement('span'); s.className = 'fruit crossed'; s.textContent = item;
+      emojiRow.appendChild(s);
+    }
+  }
+}
+
+function renderRound(){
+  if (qi >= total){ endGame(); return; }
+  locked = false;
+  feedbackEl.textContent = '';
+  answerBox.textContent = '?';
+  answerBox.style.color = '#3B6D11';
+  answerBox.style.background = '#f4fbe9';
+  mascotEl.style.animation = 'bounce 1.5s ease-in-out infinite';
+  const r = rounds[qi];
+  qnumEl.textContent = qi+1;
+  const item = itemSets[qi % itemSets.length];
+  renderItemRow(r, item);
+
+  if (r.type === 'count'){
+    modeLabel.textContent = 'How many do you see?';
+    qEl.textContent = '=';
+  } else {
+    modeLabel.textContent = r.type === 'add' ? 'Add them up!' : 'Take some away!';
+    qEl.textContent = `${r.a} ${r.op} ${r.b} =`;
+  }
+
+  const correct = r.answer;
+  const opts = new Set([correct]);
+  while (opts.size < 3){
+    const delta = Math.floor(Math.random()*5)-2;
+    const cand = correct + delta;
+    if (cand >= 0 && cand !== correct) opts.add(cand);
+  }
+  const arr = Array.from(opts).sort(()=>Math.random()-0.5);
+  choicesEl.innerHTML = '';
+  arr.forEach((val,idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = val;
+    btn.style.cssText = `font-size:clamp(24px,6vw,32px);font-weight:700;padding:clamp(16px,4vw,22px) 0;border-radius:18px;border:3px solid ${buttonColors[idx]};background:#fff;color:${buttonColors[idx]};animation:pop .25s ease ${idx*0.05}s both;`;
+    btn.onclick = ()=>{
+      if (locked) return;
+      locked = true;
+      answerBox.textContent = val;
+      if (val === correct){
+        score++; stars++; streak++; renderStars();
+        const big = streak > 0 && streak % 3 === 0;
+        feedbackEl.textContent = big ? 'On fire! 🔥' : 'Great job! 🎉';
+        feedbackEl.style.color = '#3B6D11';
+        answerBox.style.color = '#3B6D11';
+        answerBox.style.background = '#e2f3cf';
+        mascotEl.textContent = '🐻✨';
+        if (big){ playStreak(); } else { playCorrect(); }
+        fireworks(big);
+        btn.style.background = '#EAF3DE';
+      } else {
+        streak = 0;
+        feedbackEl.textContent = `Not quite — it's ${correct}!`;
+        feedbackEl.style.color = '#993C1D';
+        answerBox.style.color = '#993C1D';
+        answerBox.style.background = '#fbe4e4';
+        mascotEl.style.animation = 'shake .4s ease';
+        playWrong();
+        btn.style.background = '#FCEBEB';
+      }
+      setTimeout(()=>{ qi++; renderRound(); }, 1300);
+    };
+    choicesEl.appendChild(btn);
+  });
+}
+
+function endGame(){
+  emojiRow.innerHTML = '';
+  modeLabel.textContent = '';
+  qEl.textContent = `You earned ${stars} stars!`;
+  answerBox.style.display = 'none';
+  mascotEl.textContent = stars >= total*0.7 ? '🐻🏆' : '🐻';
+  mascotEl.style.animation = 'wiggle 1s ease-in-out infinite';
+  choicesEl.innerHTML = '';
+  feedbackEl.textContent = stars >= total*0.7 ? 'Superstar mathematician! 🌟' : 'Great effort — try again for more stars!';
+  feedbackEl.style.color = '#633806';
+  againBtn.style.display = 'inline-block';
+  if (stars >= total*0.7) { playStreak(); fireworks(true); }
+}
+
+againBtn.onclick = ()=>{
+  score = 0; qi = 0; stars = 0; streak = 0;
+  againBtn.style.display = 'none';
+  answerBox.style.display = 'inline-flex';
+  genRounds(); renderStars(); renderRound();
+};
+
+renderRound();
+</script>
+</body>
+</html>
